@@ -4,8 +4,8 @@ import java.io.File
 
 private val lines = File("input/puzzle2/input.txt").readLines()
 
-val limits = mutableMapOf("red" to 12, "green" to 13, "blue" to 14)
 fun puzzle2(): Int {
+    val limits = mutableMapOf("red" to 12, "green" to 13, "blue" to 14)
     var valid = 0
     lines.forEach line@{
         val splits = it.split(": ")
@@ -32,7 +32,6 @@ fun puzzle2dot1(): Int {
     var powerSet = 0
     lines.forEach line@{
         val splits = it.split(": ")
-        val game = "\\d+".toRegex().find(splits[0])
 
         val pulls = splits[1].split("; ")
 
