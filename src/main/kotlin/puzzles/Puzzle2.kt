@@ -44,7 +44,6 @@ fun puzzle2dot1(): Int {
             }
         }
         powerSet += (minimums["red"]!! * minimums["green"]!! * minimums["blue"]!!)
-        minimums = mutableMapOf("red" to 0, "green" to 0, "blue" to 0)
     }
 
     return powerSet
