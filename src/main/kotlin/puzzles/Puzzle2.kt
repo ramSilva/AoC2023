@@ -35,7 +35,7 @@ fun puzzle2dot1(): Int {
 
         val pulls = splits[1].split("; ")
 
-        var minimums = mutableMapOf("red" to 0, "green" to 0, "blue" to 0)
+        val minimums = mutableMapOf("red" to 0, "green" to 0, "blue" to 0)
         pulls.forEach { pull ->
             val balls = pull.split(", ")
             balls.forEach {
