@@ -5,152 +5,74 @@ import java.io.File
 private val lines = File("input/puzzle8/input.txt").readLines()
 
 fun puzzle8(): Int {
-    val gridSize = lines[0].length
-    val seenTrees = mutableSetOf<Pair<Int, Int>>()
+    val map = mutableMapOf<String, Pair<String, String>>()
 
-    // left to right
-    for (i in 0 until gridSize) {
-        var highestTree = -1
-        for (j in 0 until gridSize) {
-            val tree = lines[i][j].digitToInt()
-            if (tree > highestTree) {
-                seenTrees.add(Pair(i, j))
-                highestTree = tree
-            }
-        }
-    }
-    // right to left
-    for (i in 0 until gridSize) {
-        var highestTree = -1
-        for (j in (gridSize - 1) downTo 0) {
-            val tree = lines[i][j].digitToInt()
-            if (tree > highestTree) {
-                seenTrees.add(Pair(i, j))
-                highestTree = tree
-            }
-        }
-    }
-    // top to bottom
-    for (i in 0 until gridSize) {
-        var highestTree = -1
-        for (j in 0 until gridSize) {
-            val tree = lines[j][i].digitToInt()
-            if (tree > highestTree) {
-                highestTree = tree
-                seenTrees.add(Pair(j, i))
-            }
-        }
-    }
-    // bottom to top
-    for (i in 0 until gridSize) {
-        var highestTree = -1
-        for (j in (gridSize - 1) downTo 0) {
-            val tree = lines[j][i].digitToInt()
-            if (tree > highestTree) {
-                highestTree = tree
-                seenTrees.add(Pair(j, i))
-            }
-        }
+    val pattern = lines[0]
+
+    lines.subList(2, lines.size).forEach {
+        val (name, left, right) = "[A-Z]+".toRegex().findAll(it).map { it.value }.toList()
+
+        map[name] = Pair(left, right)
     }
 
-    return seenTrees.size
+    var currentNode = "AAA"
+    var operationIndex = 0
+
+    var steps = 0
+    while (true) {
+        if (currentNode == "ZZZ") break
+
+        currentNode =
+            if (pattern[operationIndex] == 'L') map[currentNode]!!.first else map[currentNode]!!.second
+
+        operationIndex = (operationIndex + 1) % pattern.toCharArray().size
+        steps++
+    }
+
+    return steps
 }
 
-fun puzzle8alt(): Int {
-    val seenTrees = mutableSetOf<Pair<Int, Int>>()
-    val gridSize = lines[0].length
-
-    lines.forEachIndexed { i, s ->
-        s.forEachIndexed { j, c ->
-            val tree = c.digitToInt()
-            var coverDirections = 0
-
-            // check left
-            for (x in j - 1 downTo 0) {
-                if (tree <= lines[i][x].digitToInt()) {
-                    coverDirections++
-                    break
-                }
-            }
-
-            // check right
-            for (x in j + 1 until gridSize) {
-                if (tree <= lines[i][x].digitToInt()) {
-                    coverDirections++
-                    break
-                }
-            }
-
-            // check top
-            for (y in i - 1 downTo 0) {
-                if (tree <= lines[y][j].digitToInt()) {
-                    coverDirections++
-                    break
-                }
-            }
-
-            // check bottom
-            for (y in i + 1 until gridSize) {
-                if (tree <= lines[y][j].digitToInt()) {
-                    coverDirections++
-                    break
-                }
-            }
-
-            if (coverDirections < 4) seenTrees.add(Pair(j, i))
-        }
-    }
-
-    return seenTrees.size
+fun findGCD(a: Long, b: Long): Long {
+    return if (b == 0L) a else findGCD(b, a % b)
 }
 
-fun puzzle8dot1(): Int? {
-    val scores = mutableListOf<Int>()
-    val gridSize = lines[0].length
+fun findLCM(a: Long, b: Long): Long {
+    return if (a == 0L || b == 0L) 0 else (a * b) / findGCD(a, b)
+}
 
-    lines.forEachIndexed { i, s ->
-        s.forEachIndexed { j, c ->
-            val tree = c.digitToInt()
+fun puzzle8dot1(): Long {
+    val map = mutableMapOf<String, Pair<String, String>>()
 
-            // check left
-            var leftCount = 0
-            for (x in j - 1 downTo 0) {
-                leftCount++
-                if (tree <= lines[i][x].digitToInt()) {
-                    break
-                }
-            }
+    val pattern = lines[0]
 
-            // check right
-            var rightCount = 0
-            for (x in j + 1 until gridSize) {
-                rightCount++
-                if (tree <= lines[i][x].digitToInt()) {
-                    break
-                }
-            }
+    lines.subList(2, lines.size).forEach {
+        val (name, left, right) = "[A-Z|1-9]+".toRegex().findAll(it).map { it.value }.toList()
 
-            // check top
-            var topCount = 0
-            for (y in i - 1 downTo 0) {
-                topCount++
-                if (tree <= lines[y][j].digitToInt()) {
-                    break
-                }
-            }
-
-            // check bottom
-            var bottomCount = 0
-            for (y in i + 1 until gridSize) {
-                bottomCount++
-                if (tree <= lines[y][j].digitToInt()) {
-                    break
-                }
-            }
-
-            scores.add(leftCount * rightCount * topCount * bottomCount)
-        }
+        map[name] = Pair(left, right)
     }
 
-    return scores.maxOrNull()
+    var currentNodes = map.filter { it.key.last() == 'A' }.map { it.key }.toList()
+    val timeToEnd = MutableList(currentNodes.size) { -1L }
+
+    var operationIndex = 0
+    var steps = 0
+
+    while (true) {
+        val nextNodes = mutableSetOf<String>()
+
+        if (timeToEnd.all { it > -1 }) break
+
+        currentNodes.forEachIndexed { i, it ->
+            val nextNode = if (pattern[operationIndex] == 'L') map[it]!!.first else map[it]!!.second
+            nextNodes.add(nextNode)
+
+            if (it.last() == 'Z' && timeToEnd[i] == -1L) timeToEnd[i] = steps.toLong()
+        }
+
+        currentNodes = nextNodes.toList()
+        operationIndex = (operationIndex + 1) % pattern.toCharArray().size
+        steps++
+    }
+
+    return timeToEnd.reduce { acc, l -> findLCM(acc, l) }
 }
