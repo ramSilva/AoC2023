@@ -7,46 +7,26 @@ import kotlin.math.sqrt
 
 private val lines = File("input/puzzle9/input.txt").readLines()
 
-fun puzzle9(): Long {
-    var sumOfNext = 0L
-    lines.forEach {
-        var numbers = it.split(" ").map { it.toLong() }
-        var next = numbers.last()
+fun puzzle9() = lines.sumOf {
+    var numbers = it.split(" ").map { it.toLong() }
+    var nextInSequence = numbers.last()
 
-        while(true){
-            if (numbers.all { it == 0L }) break
-
-            val differences = mutableListOf<Long>()
-            numbers.zipWithNext { a, b -> differences.add(b - a) }
-            next += differences.last()
-
-            numbers = differences
-        }
-
-        sumOfNext += next
+    while (numbers.any { it != 0L }) {
+        numbers = numbers.zipWithNext { a, b -> b - a }
+        nextInSequence += numbers.last()
     }
 
-    return sumOfNext
+    nextInSequence
 }
 
-fun puzzle9dot1(): Long {
-    var sumOfNext = 0L
-    lines.forEach {
-        var numbers = it.split(" ").map { it.toLong() }.reversed()
-        var next = numbers.last()
+fun puzzle9dot1() = lines.sumOf {
+    var numbers = it.split(" ").map { it.toLong() }.reversed()
+    var nextInSequence = numbers.last()
 
-        while(true){
-            if (numbers.all { it == 0L }) break
-
-            val differences = mutableListOf<Long>()
-            numbers.zipWithNext { a, b -> differences.add(b - a) }
-            next += differences.last()
-
-            numbers = differences
-        }
-
-        sumOfNext += next
+    while (numbers.any { it != 0L }) {
+        numbers = numbers.zipWithNext { a, b -> b - a }
+        nextInSequence += numbers.last()
     }
 
-    return sumOfNext
+    nextInSequence
 }
