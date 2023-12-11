@@ -1,87 +1,45 @@
 package puzzles
 
 import java.io.File
+import kotlin.math.abs
 
 private val lines = File("input/puzzle11/input.txt").readLines()
 
-data class Monke(
-    var items: MutableList<Long> = mutableListOf(),
-    var operation: (Long) -> Long = { 0L },
-    var test: Int = 0,
-    var testSuccess: Int = 0,
-    var testFail: Int = 0,
-    var handledItems: Long = 0
-)
+fun puzzle11(expansionRate: Int): Long {
+    val galaxies = mutableListOf<Pair<Long, Long>>()
 
-fun puzzle11(isPart1: Boolean): Long {
-    val monkes = mutableListOf<Monke>()
-    var currentMonke = -1
+    var maxX = 0
+    var maxY = 0
+    lines.forEachIndexed { y, s ->
+        s.forEachIndexed { x, c ->
+            if (c == '#') galaxies.add(Pair(x.toLong(), y.toLong()))
 
-    lines.forEach {
-        when {
-            it.contains("Monkey") -> { // Monkey with capital M means it's the first line
-                currentMonke = "\\w (\\d+):".toRegex().find(it)!!.groupValues[1].toInt()
-                monkes.add(currentMonke, Monke())
-            }
-            it.contains("Starting items") -> {
-                val startingItems =
-                    "\\w+: (.*)".toRegex().find(it)!!.groupValues[1].split(", ")
-                        .map { it.toLong() }
-                monkes[currentMonke].items = startingItems.toMutableList()
-            }
-            it.contains("Operation") -> {
-                val (operator, amount) = "\\w+ ([*|+]) (.*)".toRegex().find(it)!!.destructured
-                val operation: (Long) -> Long =
-                    if (operator == "+") {
-                        if (amount == "old") {
-                            { old -> old + old }
-                        } else {
-                            { old -> old + amount.toLong() }
-                        }
-                    } else {
-                        if (amount == "old") {
-                            { old -> old * old }
-                        } else {
-                            { old -> old * amount.toLong() }
-                        }
-                    }
-                monkes[currentMonke].operation = operation
-            }
-            it.contains("Test") -> {
-                val amount = ".* (\\d+)".toRegex().find(it)!!.groupValues[1].toInt()
-                monkes[currentMonke].test = amount
-            }
-            it.contains("true") -> {
-                val target = ".* (\\d+)".toRegex().find(it)!!.groupValues[1].toInt()
-                monkes[currentMonke].testSuccess = target
-            }
-            it.contains("false") -> {
-                val target = ".* (\\d+)".toRegex().find(it)!!.groupValues[1].toInt()
-                monkes[currentMonke].testFail = target
-            }
+            if (x > maxX) maxX = x
+            if (y > maxY) maxY = y
         }
     }
 
-    val mcd = monkes.fold(1) { acc, monke -> acc * monke.test }
-
-    for (i in 0 until if (isPart1) 20 else 10000) {
-        monkes.forEach { monke ->
-            val itemsCopy = monke.items.toMutableList()
-            itemsCopy.forEach { item ->
-                monke.handledItems++
-                monke.items.removeFirst()
-                var newWorry = monke.operation(item)
-                if (isPart1) newWorry /= 3 else newWorry %= mcd
-
-                if (newWorry % monke.test == 0L) {
-                    monkes[monke.testSuccess].items.add(newWorry)
-                } else {
-                    monkes[monke.testFail].items.add(newWorry)
-                }
-            }
+    for (y in (maxY - 1) downTo  0) {
+        val expandedGalaxies = mutableListOf<Pair<Long, Long>>()
+        if (galaxies.none { it.second == y.toLong() }) {
+            val galaxiesBeyond = galaxies.filter { it.second > y }
+            expandedGalaxies.addAll(galaxiesBeyond.map { Pair(it.first, it.second + expansionRate - 1) })
+            galaxies.removeAll(galaxiesBeyond)
+            galaxies.addAll(expandedGalaxies)
         }
     }
 
-    return monkes.sortedByDescending { it.handledItems }
-        .let { it[0].handledItems * it[1].handledItems }
+    for (x in (maxX - 1) downTo  0) {
+        val expandedGalaxies = mutableListOf<Pair<Long, Long>>()
+        if (galaxies.none { it.first == x.toLong() }) {
+            val galaxiesBeyond = galaxies.filter { it.first > x }
+            expandedGalaxies.addAll(galaxiesBeyond.map { Pair(it.first + expansionRate - 1, it.second) })
+            galaxies.removeAll(galaxiesBeyond)
+            galaxies.addAll(expandedGalaxies)
+        }
+    }
+
+    return galaxies.sumOf { galaxy ->
+        galaxies.filter { it != galaxy }.sumOf { abs(galaxy.first - it.first) + abs(galaxy.second - it.second) }
+    } / 2L
 }
