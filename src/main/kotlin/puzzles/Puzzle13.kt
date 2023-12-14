@@ -1,86 +1,168 @@
 package puzzles
 
-import com.google.gson.Gson
 import java.io.File
 
 private val lines = File("input/puzzle13/input.txt").readLines()
 
 fun puzzle13(): Int {
-    val ordered = mutableListOf<Int>()
-    var index = 0
-    lines.filter { it.isNotEmpty() }.map {
-        Gson().fromJson(it, List::class.java)
-    }.chunked(2).forEach {
-        index++
-        if (isOrdered(it.first(), it.last()) == Result.ORDERED) {
-            ordered.add(index)
+    val map = mutableListOf<Pair<Int, Int>>()
+    var maxX = 0
+    var maxY = 0
+    var result = 0
+    var yOffset = 0
+    lines.forEachIndexed { y, s ->
+        if (s.isEmpty()) {
+            var mirror = -1
+            for (x in 0 until maxX) {
+                for (y in 0..maxY) {
+                    for (i in 0..x) {
+                        val pairsToCheck = listOf(Pair(x - i, y), Pair(x + i + 1, y))
+                        if (map.containsAll(pairsToCheck) || !map.any { pairsToCheck.contains(it) }) {
+                            if (mirror == -1) mirror = pairsToCheck.first().first
+                        } else if (
+                            pairsToCheck.first().first < 0 ||
+                            pairsToCheck.last().first > maxX &&
+                            mirror != -1
+                        ) {
+                            break
+                        } else {
+                            mirror = -1
+                            break
+                        }
+                    }
+                    if (mirror == -1) break
+                }
+                if (mirror != -1) break
+            }
+
+            if (mirror != -1) {
+                result += mirror + 1
+            } else {
+                for (y in 0 until maxY) {
+                    for (x in 0..maxX) {
+                        for (i in 0..y) {
+                            val pairsToCheck = listOf(Pair(x, y - i), Pair(x, y + i + 1))
+                            if (map.containsAll(pairsToCheck) || !map.any { pairsToCheck.contains(it) }) {
+                                if (mirror == -1) mirror = pairsToCheck.first().second
+                            } else if (
+                                pairsToCheck.first().second < 0 ||
+                                pairsToCheck.last().second > maxY &&
+                                mirror != -1
+                            ) {
+                                break
+                            } else {
+                                mirror = -1
+                                break
+                            }
+                        }
+                        if (mirror == -1) break
+                    }
+                    if (mirror != -1) break
+                }
+                result += (mirror + 1) * 100
+            }
+
+            map.clear()
+            maxX = 0
+            maxY = 0
+            yOffset = y + 1
+            return@forEachIndexed
+        }
+
+        s.forEachIndexed { x, c ->
+            if (c == '#') {
+                map.add(Pair(x, y - yOffset))
+                maxX = maxOf(maxX, x)
+                maxY = maxOf(maxY, y - yOffset)
+            }
         }
     }
 
-    return ordered.sum()
+    return result
 }
 
 fun puzzle13dot1(): Int {
-    val ordered = mutableListOf<Any>()
-    val unordered = lines.filter { it.isNotEmpty() }.map {
-        Gson().fromJson(it, List::class.java)
-    }.toMutableList()
+    val map = mutableListOf<Pair<Int, Int>>()
+    var maxX = 0
+    var maxY = 0
+    var result = 0
+    var yOffset = 0
+    lines.forEachIndexed { y, s ->
+        if (s.isEmpty()) {
+            var mirror = -1
+            var numberOfErrors = 0
+            for (x in 0 until maxX) {
+                numberOfErrors = 0
+                for (y in 0..maxY) {
+                    for (i in 0..x) {
+                        val pairsToCheck = listOf(Pair(x - i, y), Pair(x + i + 1, y))
+                        if (map.containsAll(pairsToCheck) || !map.any { pairsToCheck.contains(it) }) {
+                            if (mirror == -1) mirror = pairsToCheck.first().first
+                        } else if (
+                            pairsToCheck.first().first < 0 ||
+                            pairsToCheck.last().first > maxX &&
+                            mirror != -1
+                        ) {
+                            break
+                        } else if (numberOfErrors < 1) {
+                            if (mirror == -1) mirror = pairsToCheck.first().first
+                            numberOfErrors++
+                        } else {
+                            mirror = -1
+                            break
+                        }
+                    }
+                    if (mirror == -1) break
+                }
+                if (mirror != -1 && numberOfErrors > 0) break
+            }
 
-    val dividers = Pair(arrayListOf(arrayListOf(2.0)), arrayListOf(arrayListOf(6.0)))
-    unordered.add(dividers.first)
-    unordered.add(dividers.second)
+            if (mirror != -1 && numberOfErrors > 0) {
+                result += mirror + 1
+            } else {
+                for (y in 0 until maxY) {
+                    numberOfErrors = 0
+                    for (x in 0..maxX) {
+                        for (i in 0..y) {
+                            val pairsToCheck = listOf(Pair(x, y - i), Pair(x, y + i + 1))
+                            if (map.containsAll(pairsToCheck) || !map.any { pairsToCheck.contains(it) }) {
+                                if (mirror == -1) mirror = pairsToCheck.first().second
+                            } else if (
+                                pairsToCheck.first().second < 0 ||
+                                pairsToCheck.last().second > maxY &&
+                                mirror != -1
+                            ) {
+                                break
+                            } else if (numberOfErrors < 1) {
+                                if (mirror == -1) mirror = pairsToCheck.first().second
+                                numberOfErrors++
+                            } else {
+                                mirror = -1
+                                break
+                            }
+                        }
+                        if (mirror == -1) break
+                    }
+                    if (mirror != -1 && numberOfErrors > 0) break
+                }
+                result += (mirror + 1) * 100
+            }
 
-    while (true) {
-        if (unordered.size == 0) break
+            map.clear()
+            maxX = 0
+            maxY = 0
+            yOffset = y + 1
+            return@forEachIndexed
+        }
 
-        var currentMin = unordered[0]
-        unordered.forEach {
-            if (isOrdered(it, currentMin) == Result.ORDERED) {
-                currentMin = it
+        s.forEachIndexed { x, c ->
+            if (c == '#') {
+                map.add(Pair(x, y - yOffset))
+                maxX = maxOf(maxX, x)
+                maxY = maxOf(maxY, y - yOffset)
             }
         }
-        unordered.remove(currentMin)
-        ordered.add(currentMin)
     }
 
-    return (ordered.indexOf(dividers.first) + 1) * (ordered.indexOf(dividers.second) + 1)
+    return result
 }
-
-enum class Result {
-    ORDERED,
-    NON_ORDERED,
-    INCONCLUSIVE
-}
-
-fun isOrdered(list1: List<*>, list2: List<*>): Result {
-    var i = 0
-    while (true) {
-        if (i >= list1.size && i >= list2.size) return Result.INCONCLUSIVE
-
-        if (i >= list1.size) return Result.ORDERED
-        if (i >= list2.size) return Result.NON_ORDERED
-
-        val element1 = list1[i]
-        val element2 = list2[i]
-
-        if (element1 is Double && element2 is Double) {
-            if (element1 < element2) return Result.ORDERED
-            if (element2 < element1) return Result.NON_ORDERED
-        }
-        if (element1 is List<*> && element2 is List<*>) {
-            val result = isOrdered(element1, element2)
-            if (result != Result.INCONCLUSIVE) return result
-        }
-        if (element1 is List<*> && element2 is Double) {
-            val result = isOrdered(element1, listOf(element2))
-            if (result != Result.INCONCLUSIVE) return result
-        }
-        if (element1 is Double && element2 is List<*>) {
-            val result = isOrdered(listOf(element1), element2)
-            if (result != Result.INCONCLUSIVE) return result
-        }
-
-        i++
-    }
-}
-

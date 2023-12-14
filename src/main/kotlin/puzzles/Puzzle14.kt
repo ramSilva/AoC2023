@@ -5,145 +5,162 @@ import java.io.File
 private val lines = File("input/puzzle14/input.txt").readLines()
 
 fun puzzle14(): Int {
-    val grid = mutableSetOf<Pair<Int, Int>>()
-    var bottom = Int.MIN_VALUE
+    val originalMap = mutableMapOf<Pair<Int, Int>, Char>()
+    var maxX = lines[0].length - 1
+    var maxY = lines.size - 1
+    lines.forEachIndexed { y, s ->
+        s.forEachIndexed { x, c ->
+            if (c != '.') originalMap[Pair(x, y)] = c
+        }
+    }
 
-    lines.forEach {
-        it.split(" -> ").zipWithNext { rock1, rock2 ->
-            val rock1coords = rock1.split(",")
-            val rock2coords = rock2.split(",")
+    val movedMap = originalMap.filter { it.value == '#' }.toMutableMap()
+    var result = 0
+    originalMap.forEach {
+        if (it.value == 'O') {
+            for (y in it.key.second downTo 0) {
+                val currentPos = Pair(it.key.first, y)
+                if (movedMap.containsKey(currentPos) || originalMap[currentPos] == '#') {
+                    movedMap[Pair(it.key.first, y + 1)] = 'O'
+                    result += maxY - y
+                    break
+                }
 
-            for (x in rock1coords.first().toInt()..rock2coords.first().toInt()) {
-                val y = rock1coords.last().toInt()
-                grid.add(Pair(x, y))
-            }
-
-            for (x in rock2coords.first().toInt()..rock1coords.first().toInt()) {
-                val y = rock1coords.last().toInt()
-                grid.add(Pair(x, y))
-            }
-
-            for (y in rock1coords.last().toInt()..rock2coords.last().toInt()) {
-                val x = rock1coords.first().toInt()
-                grid.add(Pair(x, y))
-            }
-
-            for (y in rock2coords.last().toInt()..rock1coords.last().toInt()) {
-                val x = rock1coords.first().toInt()
-                grid.add(Pair(x, y))
+                if (y == 0) {
+                    movedMap[Pair(it.key.first, 0)] = 'O'
+                    result += maxY + 1
+                }
             }
         }
     }
 
-    grid.forEach {
-        if (it.second >= bottom) {
-            bottom = it.second
-        }
-    }
+    //val sorted = movedMap.toList().sortedBy { it.first.second }.sortedBy { it.first.first }.toMap()
 
-    val origin = Pair(500, 0)
-
-    var i = 0
-    var isMoving = true
-    var sandPosition = origin
-    while (true) {
-        if (sandPosition.second > bottom) break
-
-        if (!isMoving) {
-            i++
-            sandPosition = origin
-            isMoving = true
-        }
-
-        val down = Pair(sandPosition.first, sandPosition.second + 1)
-        val downRight = Pair(sandPosition.first + 1, sandPosition.second + 1)
-        val downLeft = Pair(sandPosition.first - 1, sandPosition.second + 1)
-
-        when {
-            !grid.contains(down) -> sandPosition = down
-            !grid.contains(downLeft) -> sandPosition = downLeft
-            !grid.contains(downRight) -> sandPosition = downRight
-            else -> {
-                grid.add(sandPosition)
-                isMoving = false
-            }
-        }
-    }
-
-    return i
+    return result
 }
 
 fun puzzle14dot1(): Int {
-    val grid = mutableSetOf<Pair<Int, Int>>()
-    var bottom = Int.MIN_VALUE
-
-    lines.forEach {
-        it.split(" -> ").zipWithNext { rock1, rock2 ->
-            val rock1coords = rock1.split(",")
-            val rock2coords = rock2.split(",")
-
-            for (x in rock1coords.first().toInt()..rock2coords.first().toInt()) {
-                val y = rock1coords.last().toInt()
-                grid.add(Pair(x, y))
-            }
-
-            for (x in rock2coords.first().toInt()..rock1coords.first().toInt()) {
-                val y = rock1coords.last().toInt()
-                grid.add(Pair(x, y))
-            }
-
-            for (y in rock1coords.last().toInt()..rock2coords.last().toInt()) {
-                val x = rock1coords.first().toInt()
-                grid.add(Pair(x, y))
-            }
-
-            for (y in rock2coords.last().toInt()..rock1coords.last().toInt()) {
-                val x = rock1coords.first().toInt()
-                grid.add(Pair(x, y))
-            }
+    var originalMap = mutableMapOf<Pair<Int, Int>, Char>()
+    val maxX = lines[0].length - 1
+    val maxY = lines.size - 1
+    lines.forEachIndexed { y, s ->
+        s.forEachIndexed { x, c ->
+            if (c != '.') originalMap[Pair(x, y)] = c
         }
     }
 
-    grid.forEach {
-        if (it.second >= bottom) {
-            bottom = it.second
-        }
-    }
+    val cycleDetector3000 = mutableListOf<List<Pair<Int, Int>>>()
+    val iterations = 1000000000
+    val finalRockPositions = mutableListOf<Pair<Int, Int>>()
+    for (i in 0..iterations) {
+        val rockPositions = originalMap.filter { it.value == 'O' }.keys.toList()
+        if (cycleDetector3000.contains(rockPositions)) {
+            val cycleSize = cycleDetector3000.size - cycleDetector3000.indexOf(rockPositions)
+            var cycleOffset = i
+            while (cycleOffset < iterations)
+                cycleOffset += cycleSize
 
-    val origin = Pair(500, 0)
-
-    var i = 1
-    var isMoving = true
-    var sandPosition = origin
-    while (true) {
-        if (sandPosition.second == bottom + 1){
-            grid.add(sandPosition)
-            isMoving = false
-        }
-
-        if (!isMoving) {
-            i++
-            sandPosition = origin
-            isMoving = true
+            cycleOffset -= iterations
+            finalRockPositions.addAll(cycleDetector3000[cycleDetector3000.size - cycleOffset])
+            break
         }
 
-        val down = Pair(sandPosition.first, sandPosition.second + 1)
-        val downRight = Pair(sandPosition.first + 1, sandPosition.second + 1)
-        val downLeft = Pair(sandPosition.first - 1, sandPosition.second + 1)
+        cycleDetector3000.add(rockPositions)
+        // North
+        var movedMap = originalMap.filter { it.value == '#' }.toMutableMap()
+        originalMap
+            .toList()
+            .sortedBy { it.first.second }
+            .toMap()
+            .forEach {
+                if (it.value == 'O') {
+                    for (y in it.key.second downTo 0) {
+                        val currentPos = Pair(it.key.first, y)
+                        if (movedMap.containsKey(currentPos) || originalMap[currentPos] == '#') {
+                            movedMap[Pair(it.key.first, y + 1)] = 'O'
+                            break
+                        }
 
-        when {
-            !grid.contains(down) -> sandPosition = down
-            !grid.contains(downLeft) -> sandPosition = downLeft
-            !grid.contains(downRight) -> sandPosition = downRight
-            else -> {
-                if(sandPosition == origin) break
-
-                grid.add(sandPosition)
-                isMoving = false
+                        if (y == 0) {
+                            movedMap[Pair(it.key.first, 0)] = 'O'
+                        }
+                    }
+                }
             }
-        }
+        originalMap = movedMap.toMutableMap()
+
+        // West
+        movedMap = originalMap.filter { it.value == '#' }.toMutableMap()
+        originalMap
+            .toList()
+            .sortedBy { it.first.first }
+            .toMap()
+            .forEach {
+                if (it.value == 'O') {
+                    for (x in it.key.first downTo 0) {
+                        val currentPos = Pair(x, it.key.second)
+                        if (movedMap.containsKey(currentPos) || originalMap[currentPos] == '#') {
+                            movedMap[Pair(x + 1, it.key.second)] = 'O'
+                            break
+                        }
+
+                        if (x == 0) {
+                            movedMap[Pair(0, it.key.second)] = 'O'
+                        }
+                    }
+                }
+            }
+        originalMap = movedMap.toMutableMap()
+
+        // South
+        movedMap = originalMap.filter { it.value == '#' }.toMutableMap()
+        originalMap
+            .toList()
+            .sortedByDescending { it.first.second }
+            .toMap()
+            .forEach {
+                if (it.value == 'O') {
+                    for (y in it.key.second..maxY) {
+                        val currentPos = Pair(it.key.first, y)
+                        if (movedMap.containsKey(currentPos) || originalMap[currentPos] == '#') {
+                            movedMap[Pair(it.key.first, y - 1)] = 'O'
+                            break
+                        }
+
+                        if (y == maxY) {
+                            movedMap[Pair(it.key.first, maxY)] = 'O'
+                        }
+                    }
+                }
+            }
+        originalMap = movedMap.toMutableMap()
+
+        // East
+        movedMap = originalMap.filter { it.value == '#' }.toMutableMap()
+        originalMap
+            .toList()
+            .sortedByDescending { it.first.first }
+            .toMap()
+            .forEach {
+                if (it.value == 'O') {
+                    for (x in it.key.first..maxX) {
+                        val currentPos = Pair(x, it.key.second)
+                        if (movedMap.containsKey(currentPos) || originalMap[currentPos] == '#') {
+                            movedMap[Pair(x - 1, it.key.second)] = 'O'
+                            break
+                        }
+
+                        if (x == maxX) {
+                            movedMap[Pair(maxX, it.key.second)] = 'O'
+                        }
+                    }
+                }
+            }
+        originalMap = movedMap.toMutableMap()
     }
 
-    return i
+    return finalRockPositions.sumOf {
+        maxY + 1 - it.second
+    }
 }
 
