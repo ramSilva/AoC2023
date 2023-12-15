@@ -2,7 +2,7 @@ package puzzles
 
 import java.io.File
 
-private val lines = File("input/puzzle12/testInput.txt").readLines()
+private val lines = File("input/puzzle12/input.txt").readLines()
 
 fun puzzle12(): Long {
     fun getCombination(input: List<String>): List<String> {
@@ -40,7 +40,7 @@ fun puzzle12(): Long {
 }
 
 fun puzzle12dot1(): Long {
-    fun isValidOption(option: String, validArrangements: List<Int>): Boolean {
+    fun isValidOption(option: String, validArrangements: List<Int>): Int {
         val damagedGroups = mutableListOf<Int>()
         var consecutiveDamaged = 0
         for (c in option) {
@@ -53,40 +53,45 @@ fun puzzle12dot1(): Long {
         }
         if (consecutiveDamaged > 0) damagedGroups.add(consecutiveDamaged)
 
-        return (option.contains('?') && validArrangements.take(damagedGroups.size) == damagedGroups)
-                || (!option.contains('?') && validArrangements == damagedGroups)
-                || (option.contains('?') && damagedGroups.isNotEmpty() && consecutiveDamaged > 0
-                && damagedGroups.size <= validArrangements.size
-                && validArrangements.take(damagedGroups.size - 1) == damagedGroups.dropLast(1)
-                && damagedGroups.last() < validArrangements[damagedGroups.size - 1])
+        return if (option.contains('?') && validArrangements.take(damagedGroups.size) == damagedGroups
+            || (!option.contains('?') && validArrangements == damagedGroups)
+            || (option.contains('?') && damagedGroups.isNotEmpty() && consecutiveDamaged > 0
+                    && damagedGroups.size <= validArrangements.size
+                    && damagedGroups.last() < validArrangements[damagedGroups.size - 1])
+        )
+            damagedGroups.size
+        else -1
     }
 
     val memo = mutableMapOf<Pair<String, List<Int>>, Long>()
 
-    fun countCombinations(springsCombo: List<String>, validArrangements: List<Int>): Long {
-        if (springsCombo.all { !it.contains('?') }) {
-            return springsCombo.size.toLong()
+    fun countCombinations(springsCombo: String, validArrangements: List<Int>, index: Int): Long {
+        if (!springsCombo.contains('?')) {
+            return 1
         }
 
-        val key = Pair(springsCombo.toString(), validArrangements)
+        val s = springsCombo.fold("") { acc, c ->
+            if (c == '.' && !acc.contains('?')) ""
+            else acc + c
+        }
+
+        val key = Pair(s, validArrangements.subList(index, validArrangements.size))
         if (memo.containsKey(key)) {
             return memo[key]!!
         }
 
         var totalCount = 0L
 
-        for (i in springsCombo.indices) {
-            if (springsCombo[i].contains('?')) {
-                val optionDot = springsCombo.toMutableList()
-                optionDot[i] = optionDot[i].replaceFirst('?', '.')
-                if (isValidOption(optionDot[i], validArrangements)) {
-                    totalCount += countCombinations(optionDot, validArrangements)
-                }
-                val optionHash = springsCombo.toMutableList()
-                optionHash[i] = optionHash[i].replaceFirst('?', '#')
-                if (isValidOption(optionHash[i], validArrangements)) {
-                    totalCount += countCombinations(optionHash, validArrangements)
-                }
+        if (springsCombo.contains('?')) {
+            val optionDot = springsCombo.replaceFirst('?', '.')
+            var validOptionSize = isValidOption(optionDot, validArrangements)
+            if (validOptionSize > -1) {
+                totalCount += countCombinations(optionDot, validArrangements, validOptionSize)
+            }
+            val optionHash = springsCombo.replaceFirst('?', '#')
+            validOptionSize = isValidOption(optionHash, validArrangements)
+            if (validOptionSize > -1) {
+                totalCount += countCombinations(optionHash, validArrangements, validOptionSize)
             }
         }
 
@@ -106,8 +111,6 @@ fun puzzle12dot1(): Long {
             unfoldedArrangements.addAll(arrangementsList)
         }
 
-        val springsCombo = listOf(unfoldedSprings)
-
-        countCombinations(springsCombo, unfoldedArrangements)
+        countCombinations(unfoldedSprings, unfoldedArrangements, 0)
     }
 }
