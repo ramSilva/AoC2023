@@ -54,7 +54,7 @@ fun puzzle10(): Int {
 }
 
 
-fun rotateVector(vector: Pair<Int, Int>, angleRadians: Double): Pair<Int, Int> {
+public fun rotateVector(vector: Pair<Int, Int>, angleRadians: Double): Pair<Int, Int> {
     val cosTheta = cos(angleRadians)
     val sinTheta = sin(angleRadians)
 

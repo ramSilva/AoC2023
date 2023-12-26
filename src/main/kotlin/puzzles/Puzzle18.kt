@@ -1,110 +1,173 @@
 package puzzles
 
 import java.io.File
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.pow
-import kotlin.math.sqrt
+import kotlin.math.abs
 
 private val lines = File("input/puzzle18/input.txt").readLines()
 
-fun Triple<Int, Int, Int>.distance(other: Triple<Int, Int, Int>) =
-    sqrt(
-        (this.first - other.first).toFloat().pow(2)
-            + (this.second - other.second).toFloat().pow(2)
-            + (this.third - other.third).toFloat().pow(2)
-    )
-
 fun puzzle18(): Int {
-    val fallenDroplets = mutableListOf<Triple<Int, Int, Int>>()
+    val trench = mutableListOf<Pair<Int, Int>>()
 
-    return lines.sumOf {
-        val (x, y, z) = "(\\d+),(\\d+),(\\d+)".toRegex().find(it)!!.destructured
-        val droplet = Triple(x.toInt(), y.toInt(), z.toInt())
+    var maxX = 0
+    var minX = 0
+    var maxY = 0
+    var minY = 0
+    var currentPosition = Pair(0, 0)
+    var direction: Pair<Int, Int>
+    lines.forEach {
+        val (directionString, amount) = it.takeWhile { it != '(' }.split(" ")
 
-        val faces = 6 - fallenDroplets.count { it.distance(droplet) == 1.0f } * 2
+        direction = when (directionString) {
+            "U" -> Pair(0, -1)
+            "D" -> Pair(0, 1)
+            "L" -> Pair(-1, 0)
+            "R" -> Pair(1, 0)
+            else -> Pair(0, 0)
+        }
 
-        fallenDroplets.add(droplet)
-
-        faces
+        for (i in 0 until amount.toInt()) {
+            trench.add(currentPosition)
+            maxX = maxOf(maxX, currentPosition.first)
+            minX = minOf(minX, currentPosition.first)
+            maxY = maxOf(maxY, currentPosition.second)
+            minY = minOf(minY, currentPosition.second)
+            currentPosition += direction
+        }
     }
+
+    var insideVector = Pair(1, 0)
+    val insideTrench = mutableListOf<Pair<Int, Int>>()
+    for (i in trench.indices) {
+        val before = if (i == 0) trench.last() else trench[i - 1]
+        val current = trench[i]
+        val after = trench[(i + 1) % trench.size]
+
+        var position = current
+        var attempt = mutableListOf<Pair<Int, Int>>()
+        while (true) {
+            position += insideVector
+            if (trench.contains(position)) {
+                insideTrench.addAll(attempt)
+                break
+            }
+            if (position.first < minX || position.first > maxX || position.second < minY || position.second > maxY)
+                break
+
+            attempt.add(position)
+        }
+
+        // L
+        if (before.first > current.first && after.second < current.second) {
+            // CW
+            insideVector = rotateVector(insideVector, Math.PI / 2)
+        }
+        if (before.second < current.second && after.first > current.first) {
+            // CCW
+            insideVector = rotateVector(insideVector, -Math.PI / 2)
+        }
+
+        // F
+        if (before.second > current.second && after.first > current.first) {
+            // CW
+            insideVector = rotateVector(insideVector, Math.PI / 2)
+        }
+        if (before.first > current.first && after.second > current.second) {
+            // CCW
+            insideVector = rotateVector(insideVector, -Math.PI / 2)
+        }
+
+        // 7
+        if (before.first < current.first && after.second > current.second) {
+            // CW
+            insideVector = rotateVector(insideVector, Math.PI / 2)
+        }
+        if (before.second > current.second && after.first < current.first) {
+            // CCW
+            insideVector = rotateVector(insideVector, -Math.PI / 2)
+        }
+
+        // J
+        if (before.second < current.second && after.first < current.first) {
+            // CW
+            insideVector = rotateVector(insideVector, Math.PI / 2)
+        }
+        if (before.first < current.first && after.second < current.second) {
+            // CCW
+            insideVector = rotateVector(insideVector, -Math.PI / 2)
+        }
+
+        position = current
+        attempt = mutableListOf<Pair<Int, Int>>()
+        while (true) {
+            position += insideVector
+            if (trench.contains(position)) {
+                insideTrench.addAll(attempt)
+                break
+            }
+            if (position.first < minX || position.first > maxX || position.second < minY || position.second > maxY)
+                break
+
+            attempt.add(position)
+        }
+    }
+
+    trench.addAll(insideTrench)
+
+    val set = trench.toSet()
+    for (x in minX..maxX) {
+        var line = ""
+        for (y in minY..maxY) {
+            line += if (set.contains(Pair(x, y))) '#' else '.'
+        }
+        //println(line)
+    }
+    return trench.toSet().size
 }
 
-fun puzzle18dot1(): Int {
-    val fallenDroplets = mutableListOf<Triple<Int, Int, Int>>()
-    var minX = Int.MAX_VALUE
-    var maxX = Int.MIN_VALUE
+fun Pair<Long, Long>.sum(other: Pair<Long, Long>): Pair<Long, Long> =
+    Pair(this.first + other.first, this.second + other.second)
 
-    var minY = Int.MAX_VALUE
-    var maxY = Int.MIN_VALUE
+fun puzzle18dot1(): Long {
+    val vertices = mutableListOf<Pair<Long, Long>>(Pair(0L, 0L))
 
-    var minZ = Int.MAX_VALUE
-    var maxZ = Int.MIN_VALUE
-
+    var direction: Pair<Long, Long>
     lines.forEach {
-        val (x, y, z) = "(\\d+),(\\d+),(\\d+)".toRegex().find(it)!!.destructured
-        val droplet = Triple(x.toInt(), y.toInt(), z.toInt())
+        val hexa = it.takeLastWhile { it != '#' }.split(")").first()
 
-        minX = min(droplet.first, minX)
-        maxX = max(droplet.first, maxX)
-
-        minY = min(droplet.second, minY)
-        maxY = max(droplet.second, maxY)
-
-        minZ = min(droplet.third, minZ)
-        maxZ = max(droplet.third, maxZ)
-
-        fallenDroplets.add(droplet)
-    }
-
-    minX--
-    minY--
-    minZ--
-    maxX++
-    maxY++
-    maxZ++
-
-    val visitQueue = mutableSetOf<Triple<Int, Int, Int>>()
-    val visitedPositions = mutableSetOf<Triple<Int, Int, Int>>()
-
-    visitQueue.add(Triple(minX, minY, minZ))
-
-    while (true) {
-        val currentPos = visitQueue.first()
-        visitQueue.remove(currentPos)
-
-        visitedPositions.add(currentPos)
-
-        val adjacent = mutableListOf(
-            Triple(currentPos.first - 1, currentPos.second, currentPos.third),
-            Triple(currentPos.first + 1, currentPos.second, currentPos.third),
-            Triple(currentPos.first, currentPos.second - 1, currentPos.third),
-            Triple(currentPos.first, currentPos.second + 1, currentPos.third),
-            Triple(currentPos.first, currentPos.second, currentPos.third - 1),
-            Triple(currentPos.first, currentPos.second, currentPos.third + 1),
-        )
-        adjacent.removeIf {
-            visitedPositions.contains(it) || fallenDroplets.contains(it) ||
-                it.first < minX || it.first > maxX ||
-                it.second < minY || it.second > maxY ||
-                it.third < minZ || it.third > maxZ
+        direction = when (hexa.last()) {
+            '3' -> Pair(0, -1)
+            '1' -> Pair(0, 1)
+            '2' -> Pair(-1, 0)
+            '0' -> Pair(1, 0)
+            else -> Pair(0, 0)
         }
 
-        visitQueue.addAll(adjacent)
+        var offset = Pair(0L, 0L)
+        val amount = hexa.dropLast(1).toLong(16)
+        offset = offset.sum(Pair(direction.first * amount, direction.second * amount))
 
-        if (visitQueue.isEmpty()) {
-            break
-        }
+        val newPosition = vertices.last().sum(offset)
+
+        vertices.add(newPosition)
     }
 
-    var faces = 0
-    fallenDroplets.forEach outer@{ droplet ->
-        visitedPositions.forEach { visited ->
-            if (droplet.distance(visited) == 1.0f) {
-                faces++
-            }
-        }
+    var area = 0L
+    var edge = 0L
+
+    for (i in 0 until vertices.size - 1) {
+        val xi = vertices[i].first
+        val yi = vertices[i].second
+
+        val xj = vertices[i + 1].first
+        val yj = vertices[i + 1].second
+
+        area += (xi * yj) - (xj * yi)
+
+        edge += abs((xi - xj) + (yi - yj))
     }
 
-    return faces
+    area = abs(area) / 2
+    edge = (edge/ 2) + 1
+
+    return area + edge
 }
